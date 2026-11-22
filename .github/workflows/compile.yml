@@ -1,0 +1,61 @@
+name: pcloudfs compile check
+
+# Fast feedback: builds only the pcloudfs targets against a Haiku source
+# checkout, without assembling the full boot image (~2 min instead of ~15).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Checkout Haiku source
+        uses: actions/checkout@v4
+        with:
+          repository: 12akakor/Source
+          ref: test/pcloudfs
+          path: haiku
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install pcloudfs into the tree
+        run: |
+          set -euo pipefail
+          DEST=haiku/src/add-ons/kernel/file_systems/pcloudfs
+          mkdir -p "$DEST"
+          cp Jamfile "$DEST/"
+          cp src/addon/*.cpp src/addon/*.h "$DEST/"
+          cp src/cli/*.cpp "$DEST/"
+          cp src/common/*.cpp src/common/*.h "$DEST/"
+          cp src/tests/*.cpp "$DEST/"
+          printf 'SubInclude HAIKU_TOP src add-ons kernel file_systems pcloudfs ;\n' \
+            >> haiku/src/add-ons/kernel/file_systems/Jamfile
+
+      - name: Pull toolchain
+        run: docker pull --quiet ghcr.io/12akakor/cross-compiler:x86_64-master
+
+      - name: Configure and compile pcloudfs only
+        run: |
+          docker run --rm -v "$PWD/haiku:/src" -w /src \
+            -e HOME=/tmp -e TERM=dumb \
+            ghcr.io/12akakor/cross-compiler:x86_64-master \
+            bash -euo pipefail -c '
+              git config --global --add safe.directory /src
+              chmod +x configure
+              mkdir -p generated.x86_64
+              cd generated.x86_64
+              ../configure --distro-compatibility default \
+                --cross-tools-prefix /tools/cross-tools-x86_64/bin/x86_64-unknown-haiku-
+              jam -q -j$(nproc) pcloudfs pcloudctl pcloudfs_test
+            '
