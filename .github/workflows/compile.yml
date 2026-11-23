@@ -4,8 +4,6 @@ name: pcloudfs compile check
 # checkout, without assembling the full boot image (~2 min instead of ~15).
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 permissions:
   contents: read
