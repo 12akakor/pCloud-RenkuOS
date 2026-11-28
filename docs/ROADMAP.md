@@ -3,7 +3,7 @@
 ## Phase 1 — read-only mount (current)
 
 - [x] C++ project structure and Haiku style
-- [x] OAuth2 configuration and token storage
+- [x] Password login, key store and token storage
 - [x] HTTPS transport with `BSecureSocket`
 - [x] JSON parser, SHA-1/SHA-256, base64url
 - [x] Checksummed, atomic on-disk cache

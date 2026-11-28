@@ -21,7 +21,7 @@ So "pCloud Drive-like browsing" needs no custom file manager.
 
 | Task | Today | Planned GUI |
 |---|---|---|
-| Enter client id/secret | `pcloudctl auth-url` | Preferences window, two text fields |
+| Enter e-mail and password | `pcloudctl login` | Preferences window, two text fields |
 | Authorize | paste code in terminal | Open system browser + paste code field |
 | Mount / unmount | `mount` command | Button in preferences + Deskbar menu |
 | Account status / quota | `pcloudctl status` | Status view with quota bar |
@@ -55,7 +55,7 @@ implementation of the integrity rules.
 
 ## Order
 
-1. Finish and validate read-only mount + OAuth2 with the real account.
+1. Finish and validate read-only mount + password login with the real account.
 2. Phase 2 write support, validated read-only first, then enabled.
 3. Preferences app (account + mount + status).
 4. Deskbar replica and notifications.

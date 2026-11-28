@@ -27,7 +27,7 @@ phase 2.
 
 ## Remaining risks to verify with the tester
 
-- The OAuth2 authorization URL may need adjustment to pCloud's exact
+- The password login may need adjustment to pCloud's exact
   authorize endpoint and redirect handling.
 - The FUSE add-on name resolution depends on the add-on being installed in
   `/boot/system/add-ons/userlandfs`.

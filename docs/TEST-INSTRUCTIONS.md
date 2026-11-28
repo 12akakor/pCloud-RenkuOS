@@ -47,28 +47,19 @@ Each check prints `PASS`, `FAIL` or `SKIP`. A full report is written to
 **Expected:** no `FAIL` lines. If there are any, send the entire screen output
 and the `SYSLOG.TXT` file.
 
-## 4. Configure pCloud OAuth2
+## 4. Log in to pCloud
 
-You need your own pCloud application credentials. They are **not** stored in
-the repository and are not part of the image.
-
-1. Register an application at <https://docs.pcloud.com/my_apps/> if needed.
-2. Set its redirect URI to `http://localhost:8765/callback`.
-3. In the Terminal:
+No client ID is needed. Use the e-mail address and password of a pCloud
+account without two-factor authentication.
 
    ```
-   pcloudctl setup
+   pcloudctl login <email> <password>
    ```
 
-4. Enter the client ID and client secret when asked.
-5. A long URL is printed. Open it in WebPositive (or another computer), log in
-   to pCloud and approve the application.
-6. The setup tool listens on port 8765 and captures the redirect. On success
-   it prints `Authorization complete` and your numeric UID.
-
-If the browser runs on another machine, the redirect will not reach this
-machine. In that case copy the `code=` value from the browser address bar
-and tell me — I will add a manual-code option in the next image.
+The password goes into the Haiku key store; only the auth token and the
+account id are kept in the settings file. On success the command prints your
+numeric UID. The same fields are available in the `Account` tab of
+`pcloudfs_prefs`.
 
 ## 5. Check the account from the command line
 
@@ -147,7 +138,7 @@ This executes all four suites in order and writes the final summary to
 | Symptom | What to send |
 |---|---|
 | `mount` says the file system does not exist | `ls` of `/boot/system/add-ons/userlandfs` and the syslog |
-| `pcloudctl status` shows no token | output of `pcloudctl setup`, syslog |
+| `pcloudctl status` shows no token | output of `pcloudctl login`, syslog |
 | Directory is empty but the account has files | syslog lines containing `API:` and `HTTP:` |
 | Opening a file hangs | wait 60 s, then send `SYSLOG.TXT` (it is rewritten every 10 s) |
 | Any `TEST FAIL` line | full `pcloudfs-test-results.txt` and `SYSLOG.TXT` |

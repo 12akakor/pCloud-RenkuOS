@@ -1,8 +1,7 @@
-# Password login (later phase, not in the current image)
+# Password login (shipped)
 
-The user wants a second authentication mode using pCloud username/password
-for accounts without 2FA. This is a design note only; it is not implemented
-yet, so the OAuth2 test can be evaluated first.
+pCloud did not issue an OAuth2 client id for this project, so OAuth2 was
+removed. Password login is the only mode, in both `pcloudctl` and the GUI.
 
 ## Verified pCloud specification
 
@@ -20,9 +19,8 @@ Response contains:
 ```
 
 The returned token is sent to subsequent calls as the global parameter
-`auth=<token>` (OAuth2 tokens use the `Authorization: Bearer` header, which
-our client already does). The client must therefore support **both** ways of
-passing credentials.
+`auth=<token>`. The password itself is kept in the Haiku key store, not in
+the settings file.
 
 ### Optional digest mode
 Instead of sending the password in clear text (only over TLS):

@@ -21,8 +21,8 @@ it can be downloaded without a GitHub login.
 
 1. Boot the image. Confirm `pcloudfs` appears in
    `/boot/system/add-ons/userlandfs`.
-2. Configure OAuth2: `pcloudctl setup`, then paste the displayed URL into a
-   browser and approve.
+2. Log in: `pcloudctl login <email> <password>`, or use the Account tab of
+   the `pcloudfs_prefs` GUI app.
 3. `pcloudctl status` — must show the account, UID and quota.
 4. `mkdir /pCloud && mount -t userlandfs -p pcloudfs /pCloud`.
 5. In Tracker: browse folders, open a file from each size class (small,

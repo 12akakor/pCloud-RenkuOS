@@ -25,7 +25,7 @@ Tracker / BFS / applications
    pcloudfs add-on (C++)
       |        |        |
    Auth     Http      Cache
-  (OAuth2) (BSecureSocket) (local, checksummed)
+  (password) (BSecureSocket) (local, checksummed)
       \        |        /
              pCloud API
 ```
@@ -41,9 +41,8 @@ file.
 
 - A RenkuOS/Haiku tree with UserlandFS (kernel add-on, `userlandfs_server` and
   `libuserlandfs_fuse.so`).
-- A pCloud account and OAuth2 application credentials (client ID, client
-  secret). The redirect URI used by the desktop setup tool is
-  `http://localhost:8765/callback`.
+- A pCloud account without two-factor authentication. Login uses your
+  e-mail address and password.
 
 ## Building
 
@@ -64,7 +63,7 @@ cross-compiler container.
 Copy the add-on to `/boot/system/add-ons/userlandfs/pcloudfs`, then:
 
 ```
-pcloudctl setup            # OAuth2 authorization, stores tokens
+pcloudctl login <email> <password>  # stores the auth token
 mkdir /pCloud
 mount -t userlandfs -p pcloudfs /pCloud
 ```

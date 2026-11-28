@@ -2,7 +2,7 @@
 
 ## Why UserlandFS
 
-A cloud filesystem must do HTTPS, JSON, OAuth2 and large streaming
+A cloud filesystem must do HTTPS, JSON, password login and large streaming
 transfers. None of that belongs in kernel code, and a kernel add-on cannot
 use `BString`, `BMessage` or `BSecureSocket`. UserlandFS runs the filesystem
 in a userspace server while exposing a real volume through the kernel VFS.
@@ -16,7 +16,7 @@ C++ using the native Be API.
 | FUSE low-level add-on | `pcloudfs.cpp`, `PCloudFileSystem.*` | inode map, lookup, readdir, open/read; refuses writes |
 | API | `PCloudApi.*` | `listfolder`, `checksumfile`, `getfilelink`, `userinfo` |
 | Transport | `PCloudHttp.*` | HTTPS via `BSecureSocket`, redirects, chunked body, streaming to file |
-| Authentication | `PCloudAuth.*` | OAuth2 tokens in a flattened `BMessage`, PKCE verifier |
+| Authentication | `PCloudAuth.*` | password login via `userinfo?getauth=1`, token in settings, password in the key store |
 | Integrity | `PCloudCrypto.*`, `PCloudCache.*` | SHA-1/SHA-256, base64url, atomic cache updates |
 | Node model | `PCloudNode.*` | pCloud metadata as a portable record |
 
