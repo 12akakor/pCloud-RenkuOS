@@ -47,7 +47,6 @@ public:
 		int64				modified;
 		BString				sha1;
 		bigtime_t			refreshed;
-		int					fd;
 		unsigned long		lookupCount;
 
 		Node();
@@ -73,7 +72,7 @@ public:
 		void			Open(fuse_req_t request, fuse_ino_t ino,
 							struct fuse_file_info* info);
 		void			Read(fuse_req_t request, fuse_ino_t ino, size_t size,
-							off_t offset);
+							off_t offset, struct fuse_file_info* info);
 		void			Release(fuse_req_t request, fuse_ino_t ino,
 							struct fuse_file_info* info);
 		void			StatFs(fuse_req_t request, fuse_ino_t ino);
@@ -99,6 +98,7 @@ private:
 			PCloudCache	fCache;
 			BObjectList<Node> fNodes;
 			std::map<BString, Node*> fNodesById;
+			std::map<fuse_ino_t, Node*> fNodesByIno;
 			fuse_ino_t	fNextIno;
 			bool		fInitialized;
 };

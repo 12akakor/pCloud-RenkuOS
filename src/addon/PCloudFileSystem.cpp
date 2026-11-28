@@ -35,7 +35,6 @@ PCloudFileSystem::Node::Node()
 	modified(0),
 	sha1(),
 	refreshed(0),
-	fd(-1),
 	lookupCount(0)
 {
 }
@@ -43,8 +42,6 @@ PCloudFileSystem::Node::Node()
 
 PCloudFileSystem::Node::~Node()
 {
-	if (fd >= 0)
-		close(fd);
 }
 
 
@@ -56,6 +53,7 @@ PCloudFileSystem::PCloudFileSystem()
 	fCache(),
 	fNodes(),
 	fNodesById(),
+	fNodesByIno(),
 	fNextIno(FUSE_ROOT_ID + 1),
 	fInitialized(false)
 {
@@ -104,6 +102,8 @@ PCloudFileSystem::Init()
 		return B_NO_MEMORY;
 	rootNode->ino = FUSE_ROOT_ID;
 	fNodesById[BString("0")] = rootNode;
+	fNodesByIno.erase(2);
+	fNodesByIno[FUSE_ROOT_ID] = rootNode;
 
 	fInitialized = true;
 	PCLOUD_LOG_INFO("pcloudfs ready (cache: %s)", fCache.Root().String());
@@ -117,13 +117,6 @@ PCloudFileSystem::Destroy()
 	if (!fInitialized)
 		return;
 	AutoLocker<BLocker> locker(&fLock);
-	for (int32 i = 0; i < fNodes.CountItems(); i++) {
-		Node* node = fNodes.ItemAt(i);
-		if (node != NULL && node->fd >= 0) {
-			close(node->fd);
-			node->fd = -1;
-		}
-	}
 	fInitialized = false;
 	PCLOUD_LOG_INFO("pcloudfs stopped");
 }
@@ -132,12 +125,8 @@ PCloudFileSystem::Destroy()
 PCloudFileSystem::Node*
 PCloudFileSystem::_NodeForIno(fuse_ino_t ino)
 {
-	for (int32 i = 0; i < fNodes.CountItems(); i++) {
-		Node* node = fNodes.ItemAt(i);
-		if (node != NULL && node->ino == ino)
-			return node;
-	}
-	return NULL;
+	std::map<fuse_ino_t, Node*>::iterator found = fNodesByIno.find(ino);
+	return found != fNodesByIno.end() ? found->second : NULL;
 }
 
 
@@ -173,6 +162,7 @@ PCloudFileSystem::_AddNode(const PCloudNode& node)
 			return NULL;
 		}
 		fNodesById[node.fId] = result;
+		fNodesByIno[result->ino] = result;
 	}
 
 	result->name = node.fName;
@@ -254,7 +244,7 @@ PCloudFileSystem::_EnsureFile(Node* node, BString& path)
 	status = fCache.TempPath(node->id, temporaryPath);
 	if (status != B_OK)
 		return status;
-	temporaryPath << '.' << (int32)getpid();
+	temporaryPath << '.' << (int32)getpid() << '.' << (int32)node->ino;
 
 	PCloudSHA1 receivedHash;
 	status = fApi.Download(node->id, temporaryPath, receivedHash);
@@ -366,8 +356,14 @@ PCloudFileSystem::Forget(fuse_req_t request, fuse_ino_t ino,
 {
 	AutoLocker<BLocker> locker(&fLock);
 	Node* node = _NodeForIno(ino);
-	if (node != NULL && node->lookupCount >= count)
+	if (node != NULL && node->lookupCount >= count) {
 		node->lookupCount -= count;
+		if (node->lookupCount == 0) {
+			fNodesByIno.erase(node->ino);
+			fNodesById.erase(node->id);
+			fNodes.RemoveItem(node);
+		}
+	}
 	// UserlandFS does not implement fuse_reply_none(); a zero-error reply
 	// is sufficient and lets the request finish.
 	fuse_reply_err(request, 0);
@@ -497,13 +493,6 @@ PCloudFileSystem::Open(fuse_req_t request, fuse_ino_t ino,
 		fuse_reply_err(request, EROFS);
 		return;
 	}
-	if (node->fd >= 0) {
-		info->fh = node->fd;
-		info->direct_io = 1;
-		fuse_reply_open(request, info);
-		return;
-	}
-
 	BString path;
 	status_t status = _EnsureFile(node, path);
 	if (status != B_OK) {
@@ -516,7 +505,6 @@ PCloudFileSystem::Open(fuse_req_t request, fuse_ino_t ino,
 		_ReplyError(request, B_IO_ERROR);
 		return;
 	}
-	node->fd = fd;
 	info->fh = fd;
 	info->direct_io = 1;
 	fuse_reply_open(request, info);
@@ -525,11 +513,11 @@ PCloudFileSystem::Open(fuse_req_t request, fuse_ino_t ino,
 
 void
 PCloudFileSystem::Read(fuse_req_t request, fuse_ino_t ino, size_t size,
-	off_t offset)
+	off_t offset, struct fuse_file_info* info)
 {
 	AutoLocker<BLocker> locker(&fLock);
 	Node* node = _NodeForIno(ino);
-	if (node == NULL || node->fd < 0) {
+	if (node == NULL || info->fh == 0) {
 		_ReplyError(request, B_BAD_VALUE);
 		return;
 	}
@@ -541,7 +529,7 @@ PCloudFileSystem::Read(fuse_req_t request, fuse_ino_t ino, size_t size,
 		_ReplyError(request, B_NO_MEMORY);
 		return;
 	}
-	ssize_t bytes = pread(node->fd, buffer, size, offset);
+	ssize_t bytes = pread((int)info->fh, buffer, size, offset);
 	if (bytes < 0) {
 		delete[] buffer;
 		_ReplyError(request, B_IO_ERROR);
@@ -558,10 +546,8 @@ PCloudFileSystem::Release(fuse_req_t request, fuse_ino_t ino,
 {
 	AutoLocker<BLocker> locker(&fLock);
 	Node* node = _NodeForIno(ino);
-	if (node != NULL && node->fd == (int)info->fh) {
-		close(node->fd);
-		node->fd = -1;
-	}
+	if (info->fh != 0)
+		close((int)info->fh);
 	info->fh = 0;
 	fuse_reply_err(request, 0);
 }
@@ -584,7 +570,7 @@ PCloudFileSystem::StatFs(fuse_req_t request, fuse_ino_t ino)
 	info.f_bsize = 4096;
 	info.f_frsize = 4096;
 	info.f_blocks = quota / 4096;
-	info.f_bfree = (quota - used) / 4096;
+	info.f_bfree = used < quota ? (quota - used) / 4096 : 0;
 	info.f_bavail = info.f_bfree;
 	info.f_namemax = B_FILE_NAME_LENGTH;
 	fuse_reply_statfs(request, &info);

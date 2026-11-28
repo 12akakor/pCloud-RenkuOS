@@ -91,7 +91,7 @@ static void
 fs_read(fuse_req_t request, fuse_ino_t ino, size_t size, off_t offset,
 	struct fuse_file_info* info)
 {
-	sFileSystem->Read(request, ino, size, offset);
+	sFileSystem->Read(request, ino, size, offset, info);
 }
 
 
