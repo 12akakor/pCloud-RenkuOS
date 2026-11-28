@@ -212,8 +212,8 @@ PCloudPrefsWindow::_BuildAccountTab()
 	fUsername = new BTextControl("username", "E-mail:", "", NULL);
 	fPassword = new BTextControl("password", "Password:", "", NULL);
 	BStringView* privacyNote = new BStringView("privacyNote",
-		"Your password is stored only in this user's settings file, which "
-		"is readable only by you.");
+		"Your password is stored in the Haiku key store, not in a "
+		"settings file.");
 
 	fLoginButton = new BButton("login", "Log in", new BMessage(kPrefsLogin));
 	BButton* check = new BButton("check", "Check status",
