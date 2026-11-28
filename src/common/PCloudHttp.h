@@ -37,7 +37,7 @@ public:
 	*/
 		status_t		DownloadToFile(const BString& url,
 							const BString& bearer, int fd, off_t fileOffset,
-							PCloudSHA1& hasher);
+							off_t expectedSize, PCloudSHA1& hasher);
 
 		int			LastStatusCode() const	{ return fStatusCode; }
 		const BString&	LastError() const	{ return fLastError; }
@@ -46,11 +46,12 @@ private:
 		status_t		_Request(const char* method, const BString& url,
 							const BString& bearer, const BString& contentType,
 							const BString& requestBody, BString& body,
-							int fd, off_t fileOffset, PCloudSHA1* hasher);
+							int fd, off_t fileOffset,
+							off_t expectedSize, PCloudSHA1* hasher);
 
 		status_t		_Deliver(const void* data, size_t length,
 							BString& body, int fd, off_t fileOffset,
-							PCloudSHA1* hasher);
+							off_t expectedSize, PCloudSHA1* hasher);
 
 		void			_SetError(const char* format, ...);
 

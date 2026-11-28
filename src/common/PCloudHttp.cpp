@@ -92,12 +92,16 @@ header_value(const BString& headers, const char* name, BString& value)
 
 status_t
 PCloudHttp::_Deliver(const void* data, size_t length, BString& body, int fd,
-	off_t fileOffset, PCloudSHA1* hasher)
+	off_t fileOffset, off_t expectedSize, PCloudSHA1* hasher)
 {
 	if (hasher != NULL)
 		hasher->Update(data, length);
 
 	if (fd >= 0) {
+		if (expectedSize > 0 && fileOffset + (off_t)length > expectedSize) {
+			_SetError("download exceeds the verified size");
+			return B_BAD_DATA;
+		}
 		const char* bytes = static_cast<const char*>(data);
 		size_t remaining = length;
 		while (remaining > 0) {
@@ -153,11 +157,11 @@ PCloudHttp::PostForm(const BString& url, const BString& form,
 
 status_t
 PCloudHttp::DownloadToFile(const BString& url, const BString& bearer, int fd,
-	off_t fileOffset, PCloudSHA1& hasher)
+	off_t fileOffset, off_t expectedSize, PCloudSHA1& hasher)
 {
 	BString body;
 	return _Request("GET", url, bearer, "", "", body, fd, fileOffset,
-		&hasher);
+		expectedSize, &hasher);
 }
 
 
@@ -176,7 +180,7 @@ status_t
 PCloudHttp::_Request(const char* method, const BString& url,
 	const BString& bearer, const BString& contentType,
 	const BString& requestBody, BString& body, int fd, off_t fileOffset,
-	PCloudSHA1* hasher)
+	PCloudSHA1* hasher, off_t expectedSize)
 {
 	BString currentUrl(url);
 	for (int32 redirect = 0; redirect < 5; redirect++) {
@@ -345,7 +349,7 @@ PCloudHttp::_Request(const char* method, const BString& url,
 						return B_BAD_DATA;
 					}
 					status = _Deliver(buffer, (size_t)read, body, fd,
-						fileOffset + total, hasher);
+						fileOffset + total, expectedSize, hasher);
 					if (status != B_OK)
 						return status;
 					total += read;
@@ -361,7 +365,8 @@ PCloudHttp::_Request(const char* method, const BString& url,
 					&& contentLength - total < (off_t)wanted) {
 					wanted = (size_t)(contentLength - total);
 				}
-				if (wanted == 0)
+				if (wanted == 0
+					|| (expectedSize > 0 && total >= expectedSize))
 					break;
 				ssize_t read = socket.Read(buffer, wanted);
 				if (read < 0) {
@@ -371,7 +376,7 @@ PCloudHttp::_Request(const char* method, const BString& url,
 				if (read == 0)
 					break;
 				status = _Deliver(buffer, (size_t)read, body, fd,
-					fileOffset + total, hasher);
+					fileOffset + total, expectedSize, hasher);
 				if (status != B_OK)
 					return status;
 				total += read;

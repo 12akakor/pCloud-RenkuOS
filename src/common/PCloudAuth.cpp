@@ -18,6 +18,9 @@
 
 #include <new>
 
+#include <Key.h>
+#include <KeyStore.h>
+
 #include <Directory.h>
 #include <File.h>
 #include <FindDirectory.h>
@@ -164,7 +167,8 @@ PCloudAuth::LoginWithPassword(const BString& username,
 		fLastError = "pCloud login reply has no auth token";
 		return B_BAD_DATA;
 	}
-	PCloudJson::GetInt64(json, "uid", uid);
+	if (!PCloudJson::GetInt64(json, "userid", uid))
+		PCloudJson::GetInt64(json, "uid", uid);
 
 	fAccessToken = token;
 	fUsername = username;
@@ -220,7 +224,15 @@ PCloudAuth::_Load()
 	if (fApiHost.Length() == 0)
 		fApiHost.SetTo(kPCloudApiHostEurope);
 	PCloudJson::GetString(settings, kSettingUsername, fUsername);
-	PCloudJson::GetString(settings, kSettingPassword, fPassword);
+	if (fUsername.Length() > 0) {
+		BKeyStore keyStore;
+		BPasswordKey passwordKey;
+		if (keyStore.GetKey(B_KEY_TYPE_PASSWORD, "pcloudfs",
+				fUsername.String(), passwordKey) == B_OK
+			&& passwordKey.Password() != NULL) {
+			fPassword.SetTo(passwordKey.Password());
+		}
+	}
 	PCloudJson::GetString(settings, kSettingAccessToken, fAccessToken);
 	PCloudJson::GetString(settings, kSettingUid, fUid);
 	fSettingsPath = path.Path();
@@ -256,9 +268,18 @@ PCloudAuth::_Save()
 	settings.AddString(kSettingAuthType, "password");
 	settings.AddString(kSettingApiHost, fApiHost.String());
 	settings.AddString(kSettingUsername, fUsername.String());
-	settings.AddString(kSettingPassword, fPassword.String());
 	settings.AddString(kSettingAccessToken, fAccessToken.String());
 	settings.AddString(kSettingUid, fUid.String());
+
+	BKeyStore keyStore;
+	BPasswordKey passwordKey(fPassword.String(), B_KEY_PURPOSE_NETWORK,
+		"pcloudfs", fUsername.String());
+	status_t keyStatus = keyStore.AddKey(passwordKey);
+	if (keyStatus != B_OK) {
+		PCLOUD_LOG_WARNING("could not store password in key store: %s",
+			strerror(keyStatus));
+		return keyStatus;
+	}
 
 	char* buffer = NULL;
 	ssize_t size = 0;

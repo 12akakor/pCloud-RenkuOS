@@ -40,7 +40,7 @@ public:
 	*/
 		status_t		Download(const BString& fileId,
 							const BString& destinationPath,
-							PCloudSHA1& hash);
+							off_t size, PCloudSHA1& hash);
 
 		const BString&	LastError() const	{ return fLastError; }
 

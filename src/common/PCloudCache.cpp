@@ -353,7 +353,9 @@ PCloudCache::VerifyAndPromote(const BString& id, const BString& tempPath,
 		// The temporary file passed size and checksum verification;
 		// BEntry::Rename() replaces the old data atomically.
 	BEntry temporaryEntry(tempPath.String());
-	return temporaryEntry.Rename(destination.Path(), true);
+	status = temporaryEntry.Rename(destination.Path(), true);
+	if (status != B_OK)
+		return status;
 	return sync_directory(directory.Path());
 }
 

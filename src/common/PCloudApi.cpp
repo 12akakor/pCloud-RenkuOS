@@ -123,7 +123,8 @@ PCloudApi::UserInfo(BString& email, off_t& quota, off_t& used)
 	int64 usedValue = 0;
 	PCloudJson::GetString(reply, "email", email);
 	PCloudJson::GetInt64(reply, "quota", quotaValue);
-	PCloudJson::GetInt64(reply, "used", usedValue);
+	if (!PCloudJson::GetInt64(reply, "usedquota", usedValue))
+		PCloudJson::GetInt64(reply, "used", usedValue);
 	quota = (off_t)quotaValue;
 	used = (off_t)usedValue;
 	return B_OK;
@@ -241,7 +242,7 @@ PCloudApi::Download(const BString& fileId, const BString& destinationPath,
 		return (status_t)errno;
 	}
 
-	status = fHttp.DownloadToFile(url, "", fd, 0, hash);
+	status = fHttp.DownloadToFile(url, "", fd, 0, hash, size);
 	if (status != B_OK) {
 		fLastError = fHttp.LastError();
 		close(fd);
@@ -274,7 +275,7 @@ status_t
 PCloudApi::_Call(const char* method, const char* parameters, BMessage& reply)
 {
 	if (!fAuth.HasToken()) {
-		_SetError("no access token; run pcloudctl setup first");
+		_SetError("not logged in; run pcloudctl login first");
 		return B_PERMISSION_DENIED;
 	}
 
@@ -296,13 +297,9 @@ PCloudApi::_Call(const char* method, const char* parameters, BMessage& reply)
 			method, retry + 1, fHttp.LastError().String());
 		body.Truncate(0);
 	}
-	if (status != B_OK && fHttp.LastStatusCode() == 401) {
-		_SetError("%s: pCloud rejected the token; run 'pcloudctl login' again",
-			method);
-	}
 	if (status != B_OK) {
 		if (fHttp.LastStatusCode() == 401) {
-			_SetError("%s: access token rejected; run 'pcloudctl setup' again",
+			_SetError("%s: access token rejected; run 'pcloudctl login' again",
 				method);
 		} else {
 			fLastError = fHttp.LastError();
