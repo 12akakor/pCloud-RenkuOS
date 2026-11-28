@@ -242,7 +242,7 @@ PCloudApi::Download(const BString& fileId,
 		return (status_t)errno;
 	}
 
-	status = fHttp.DownloadToFile(url, "", fd, 0, hash, size);
+	status = fHttp.DownloadToFile(url, "", fd, 0, size, hash);
 	if (status != B_OK) {
 		fLastError = fHttp.LastError();
 		close(fd);
