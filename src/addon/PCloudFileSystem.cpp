@@ -247,7 +247,7 @@ PCloudFileSystem::_EnsureFile(Node* node, BString& path)
 	temporaryPath << '.' << (int32)getpid() << '.' << (int32)node->ino;
 
 	PCloudSHA1 receivedHash;
-	status = fApi.Download(node->id, temporaryPath, receivedHash);
+	status = fApi.Download(node->id, temporaryPath, size, receivedHash);
 	if (status != B_OK) {
 		PCLOUD_LOG_ERROR("download of %s failed: %s", node->id.String(),
 			fApi.LastError().String());
