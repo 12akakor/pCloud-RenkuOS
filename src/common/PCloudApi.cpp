@@ -202,8 +202,8 @@ PCloudApi::Checksum(const BString& fileId, BString& sha1, off_t& size)
 
 
 status_t
-PCloudApi::Download(const BString& fileId, const BString& destinationPath,
-	PCloudSHA1& hash)
+PCloudApi::Download(const BString& fileId,
+	const BString& destinationPath, off_t size, PCloudSHA1& hash)
 {
 	BString parameters;
 	parameters.SetToFormat("fileid=%s&forcedownload=1",
