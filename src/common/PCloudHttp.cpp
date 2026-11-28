@@ -142,7 +142,7 @@ PCloudHttp::~PCloudHttp()
 status_t
 PCloudHttp::Get(const BString& url, const BString& bearer, BString& body)
 {
-	return _Request("GET", url, bearer, "", "", body, -1, 0, NULL);
+	return _Request("GET", url, bearer, "", "", body, -1, 0, -1, NULL);
 }
 
 
@@ -151,7 +151,7 @@ PCloudHttp::PostForm(const BString& url, const BString& form,
 	const BString& bearer, BString& body)
 {
 	return _Request("POST", url, bearer, "application/x-www-form-urlencoded",
-		form, body, -1, 0, NULL);
+		form, body, -1, 0, -1, NULL);
 }
 
 
@@ -180,7 +180,7 @@ status_t
 PCloudHttp::_Request(const char* method, const BString& url,
 	const BString& bearer, const BString& contentType,
 	const BString& requestBody, BString& body, int fd, off_t fileOffset,
-	PCloudSHA1* hasher, off_t expectedSize)
+	off_t expectedSize, PCloudSHA1* hasher)
 {
 	BString currentUrl(url);
 	for (int32 redirect = 0; redirect < 5; redirect++) {
