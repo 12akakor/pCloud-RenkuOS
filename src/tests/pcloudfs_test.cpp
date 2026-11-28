@@ -437,6 +437,27 @@ test_auth_local(TestRunner& runner)
 
 
 static void
+test_userinfo_reply(TestRunner& runner)
+{
+	runner.Begin("userinfo reply");
+	BMessage reply;
+	status_t status = PCloudJson::Parse(
+		"{\"result\":0,\"userid\":1234,\"email\":\"test@example.com\","
+		"\"quota\":1000,\"usedquota\":500}", reply);
+	runner.Check(status == B_OK, "userinfo reply parses");
+	if (status != B_OK)
+		return;
+
+	int64 uid = 0;
+	int64 used = 0;
+	runner.Check(PCloudJson::GetInt64(reply, "userid", uid) && uid == 1234,
+		"userid is read");
+	runner.Check(PCloudJson::GetInt64(reply, "usedquota", used)
+		&& used == 500, "usedquota is read");
+}
+
+
+static void
 test_network(TestRunner& runner, PCloudAuth& auth)
 {
 	runner.Begin("network");
@@ -635,6 +656,7 @@ main(int argc, char** argv)
 		test_cache(runner);
 		test_journal(runner);
 		test_auth_local(runner);
+		test_userinfo_reply(runner);
 	}
 
 	PCloudAuth auth;
